@@ -17,14 +17,12 @@ main = do
     let statements = map buildStatement textLines 
     let locations = parseLocations statements
     let items = parseItems statements
-    putStrLn (show locations)
-    putStrLn (show items)
     readQuestion locations items
 
 readQuestion locations items  = do 
     putStrLn "ask a question"
     question <- getLine
-    let statementM = testQ (toText question)
+    let statementM = deriveQuestion (toText question)
         is = fmap(\q -> extractQuestion q locations items) statementM
     putStrLn(show statementM)
     putStrLn (unpackN is)

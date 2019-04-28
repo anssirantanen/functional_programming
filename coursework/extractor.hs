@@ -25,12 +25,20 @@ chainedActorLocation question locations items =
     case findActorLocation question locations of
         Just x -> Just x
         _ -> (findItemActor question items) >>= (\a -> findActorLocation (Question LocationWhere a Data.Text.empty) locations)
+countItems :: Question -> [Item] -> Maybe Integer
+countItems question items = 
+       foldItems(Data.List.filter (\i -> (Item.holder i) == (Question.actor question)) items)
+
+foldItems:: [Item] -> Maybe Integer
+foldItems [] = Nothing
+foldItems items =Just(Data.List.foldl (\acc e -> if(Item.action e == Pick)then acc+1 else acc-1) 0 items)
 
 extractQuestion :: Question -> [Location] -> [Item.Item]-> String
 extractQuestion question locations items = 
     case Question.questionType question of
         Question.Location -> unpackMaybeB(isLocation question locations)
         Question.LocationWhere -> unpackMaybeWhere(chainedActorLocation question locations items)
+        Question.Count -> unpackMaybeInt (countItems question items)
 
 unpackMaybeB:: Maybe Bool -> String
 unpackMaybeB m = case m of 
@@ -40,3 +48,6 @@ unpackMaybeB m = case m of
 unpackMaybeWhere:: Maybe Text -> String
 unpackMaybeWhere (Just s) = unpack s
 unpackMaybeWhere Nothing = "don't know"
+unpackMaybeInt :: Maybe Integer -> String
+unpackMaybeInt (Just s) = show s
+unpackMaybeInt Nothing = "don't know"

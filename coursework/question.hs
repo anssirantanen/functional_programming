@@ -11,7 +11,7 @@ import Data.Functor
 
 
 
-data QuestionType = Location | LocationWhere deriving Show
+data QuestionType = Location | LocationWhere | Count deriving Show
 
 data Question = Question { questionType:: QuestionType,
                             actor:: Text,
@@ -19,29 +19,36 @@ data Question = Question { questionType:: QuestionType,
 } deriving Show
 locationKeys = [ pack "is"]
 locationWhereKeys = [pack "where"]
+countKeys = [pack "how many objects is"]
 
-locationMatcher :: Text -> [Text] -> Maybe Text 
-locationMatcher rawString keys= 
+typeMatcher :: Text -> [Text] -> Maybe Text 
+typeMatcher rawString keys= 
     let locations = Prelude.map (\t -> parseLocation t rawString) keys
       in asum locations
 
 deriveLocationType :: Text -> Maybe(QuestionType, Text)
 deriveLocationType rawStr = 
-    case locationMatcher rawStr locationKeys of
+    case typeMatcher rawStr locationKeys of
         Just x -> Just(Location,x)
-        Nothing -> fmap(\e -> (LocationWhere,e)) (locationMatcher rawStr locationWhereKeys)
+        Nothing -> fmap(\e -> (LocationWhere,e)) (typeMatcher rawStr locationWhereKeys)
+deriveCountType :: Text -> Maybe(QuestionType, Text)
+deriveCountType rawStr = 
+    fmap(\e -> (Count, e))(typeMatcher rawStr countKeys)
 deriveQuestion :: Text -> Maybe Question
 deriveQuestion rawStr = 
     case deriveLocationType rawStr of 
         Just (t, str) ->
-            let (actor, target) = locationActor str
-            in Just (Question t actor(locationTarget target))
-        Nothing -> Nothing
-testQ str = deriveQuestion str 
-locationActor rawStrs =
+            let (actor, target) = parseActor str
+            in Just (Question t actor(parseTarget target))
+        Nothing -> case deriveCountType rawStr of 
+            Just (t, str) -> 
+                let (actor, target) = parseActor str
+                in Just (Question t actor(parseTarget target))
+            Nothing -> Nothing
+parseActor rawStrs =
     breakOn (pack " ") (Data.Text.dropWhile (==' ') rawStrs) 
 
-locationTarget rawStr =
+parseTarget rawStr =
     cleanText rawStr
 
 parseLocation:: Text -> Text -> Maybe Text
